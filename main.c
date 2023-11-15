@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
                     fwrite(&data[i], 1, ret - i, stdout);
                     fflush(stdout);
                     is_fst = 0;
+                    break;
                 }
             }
         }
