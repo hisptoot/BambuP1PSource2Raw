@@ -5,9 +5,8 @@
 
 #pragma pack (push , 1)
 struct p1p_login {
-    uint32_t v1;
-    uint32_t v2;
-    uint64_t v3;
+    uint8_t  v1[8];
+    uint64_t v2;
     char username[32];
     char access_code[32];
 };
@@ -34,8 +33,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "connect ok\n");
 
     struct p1p_login login = {0};
-    login.v1 = 0x40;
-    login.v2 = 0x3000;
+    login.v1[0] = 0x40;
+    login.v1[5] = 0x30;
 
     strcpy(&login.username[0], "bblp");
     strcpy(&login.access_code[0], access_code);
