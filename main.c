@@ -11,14 +11,20 @@ struct p1p_login {
     char access_code[32];
 };
 
+struct p1p_jpeg_pkt_header {
+    uint8_t jpeg_size[4];
+    uint32_t v1; 
+    uint8_t v2[8]; 
+};
+
 #pragma pack (pop)
 
 int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-      printf("%s [ip] [access_code]\n", argv[0]);
-      exit(0);
+        fprintf(stderr, "%s [ip] [access_code]\n", argv[0]);
+        exit(0);
     }
 
     char *ip = argv[1];
@@ -41,38 +47,73 @@ int main(int argc, char *argv[])
     sendBytes((char *)&login, sizeof(login), sock);
     fprintf(stderr, "send auth\n");
 
-    int is_fst = 1;
+    char *data = NULL;
+    size_t data_size = 2 * 1024 * 1024; 
+    data = malloc(data_size);
+    if (data == NULL)
+    {
+        fprintf(stderr, "malloc recv buffer failed\n");
+        exit(-1);
+    }
+
     while(true)
     {
+        int is_error = 0;
         int ret = 0;
-        char data[1400];
-        ret = recvBytes(data, sizeof(data), 0, sock);
-        if (ret < 0)
+        struct p1p_jpeg_pkt_header p1p_jpg_ph = {0};
+        char *ptr = (char *)&p1p_jpg_ph;
+        size_t remain_size = sizeof(p1p_jpg_ph);
+        while(remain_size > 0)
         {
-            fprintf(stderr, "recvBytes error %d\n", ret);
+            ret = recvBytes(ptr, remain_size, 0, sock);
+            if (ret < 0)
+            {
+                is_error = 1;
+                fprintf(stderr, "recvBytes error %d\n", ret);
+                break;
+            }
+
+            remain_size -= ret;
+            ptr += ret;
+        }
+
+        if (is_error)
+        {
             break;
         }
 
-        if (is_fst)
+        size_t jpeg_data_size = ((uint32_t)p1p_jpg_ph.jpeg_size[0]) | ((uint32_t)p1p_jpg_ph.jpeg_size[1] << 8) | ((uint32_t)p1p_jpg_ph.jpeg_size[2] << 16) | ((uint32_t)p1p_jpg_ph.jpeg_size[3] << 24);
+        fprintf(stderr, "jpeg_frame size: %d\n", jpeg_data_size);
+
+        size_t read_size = 0;
+        remain_size = jpeg_data_size;
+        size_t read_once_size = remain_size > data_size ? data_size : remain_size;
+        for(;remain_size > 0; read_once_size = remain_size > data_size ? data_size : remain_size)
         {
-            const uint8_t sign[] = { 0xff, 0xd8, 0xff, 0xe0 };
-            int i = 0;
-            for(i = 0; sizeof(sign) < ret && i < ret - sizeof(sign); i++)
+            ret = recvBytes(data, read_once_size, 0, sock);
+            if (ret < 0)
             {
-                if (0 == memcmp(sign, &data[i], sizeof(sign)))
-                {
-                    fprintf(stderr, "start ok\n");
-                    fwrite(&data[i], 1, ret - i, stdout);
-                    fflush(stdout);
-                    is_fst = 0;
-                    break;
-                }
+                is_error = 1;
+                fprintf(stderr, "recvBytes error %d\n", ret);
+                break;
             }
-        }
-        else
-        {
             fwrite(data, 1, ret, stdout);
             fflush(stdout);
+
+            remain_size -= ret;
+        }
+
+        if (is_error)
+        {
+            break;
         }
     }
+
+    if (data != NULL)
+    {
+        free(data);
+        data = NULL;
+    }
+
+    return 0;
 }
