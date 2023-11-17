@@ -10,7 +10,7 @@ struct p1p_login {
 
 p1p -> client
 ````
-struct p1p_jpeg_pkt_header {
+struct p1p_jpeg_pkt {
     uint8_t jpeg_size[4];   /* jpeg data length in little endian */
     uint32_t v1;            /* 00 00 00 00 */
     uint8_t v2[8];          /* 01 00 00 00 00 00 00 00 */
