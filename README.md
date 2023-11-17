@@ -1,7 +1,7 @@
 client -> p1p
 ````
 struct p1p_login {
-    uint8_t  v1[8];       / * 40 00 00 00 00 30 00 00 */
+    uint8_t  v1[8];       /* 40 00 00 00 00 30 00 00 */
     uint64_t v2;          /* 00 00 00 00 00 00 00 00 */ 
     char username[32];    /* bblp */
     char access_code[32]; /* xxxxxx */
